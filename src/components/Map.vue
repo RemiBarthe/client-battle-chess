@@ -74,8 +74,7 @@ export default {
     ],
     tileRowCount: 20,
     tileColumnCount: 30,
-    selectedUnit: null,
-    hoveredTile: null
+    selectedUnit: null
   }),
   mounted() {
     this.context = this.$refs.map.getContext("2d");
@@ -178,6 +177,48 @@ export default {
       });
       return isCollision;
     },
+    lineLine(x1, y1, x2, y2, x3, y3, x4, y4) {
+      const uA =
+        ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) /
+        ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+      const uB =
+        ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) /
+        ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+
+      if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
+        return true;
+      }
+      return false;
+    },
+    lineRect(x1, y1, x2, y2, rx, ry, rw, rh) {
+      const left = this.lineLine(x1, y1, x2, y2, rx, ry, rx, ry + rh);
+      const right = this.lineLine(
+        x1,
+        y1,
+        x2,
+        y2,
+        rx + rw,
+        ry,
+        rx + rw,
+        ry + rh
+      );
+      const top = this.lineLine(x1, y1, x2, y2, rx, ry, rx + rw, ry);
+      const bottom = this.lineLine(
+        x1,
+        y1,
+        x2,
+        y2,
+        rx,
+        ry + rh,
+        rx + rw,
+        ry + rh
+      );
+
+      if (left || right || top || bottom) {
+        return true;
+      }
+      return false;
+    },
     getPossibleMovements(rects) {
       rects.forEach(rect => {
         const collisionX = rect.x - this.selectedUnit.x;
@@ -187,7 +228,29 @@ export default {
           this.selectedUnit.movement >
           Math.sqrt(collisionX * collisionX + collisionY * collisionY)
         ) {
-          rect.movementPossible = true;
+          const unitX = this.selectedUnit.x + this.selectedUnit.w / 2;
+          const unitY = this.selectedUnit.y + this.selectedUnit.h / 2;
+
+          const tileX = rect.x + rect.w / 2;
+          const tileY = rect.y + rect.h / 2;
+          let collisionWall = false;
+
+          this.walls.every(wall => {
+            collisionWall = this.lineRect(
+              unitX,
+              unitY,
+              tileX,
+              tileY,
+              wall.x + 0.5,
+              wall.y + 0.5,
+              wall.w - 1,
+              wall.h - 1
+            );
+            if (collisionWall) return false;
+            else return true;
+          });
+
+          if (!collisionWall) rect.movementPossible = true;
         }
       });
     },
@@ -233,8 +296,7 @@ export default {
 
         this.possibleTiles.forEach(tile => (tile.hovered = false));
         if (tile) {
-          this.hoveredTile = tile;
-          this.hoveredTile.hovered = true;
+          tile.hovered = true;
         }
       }
       this.redraw();
