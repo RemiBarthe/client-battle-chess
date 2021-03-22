@@ -11,81 +11,44 @@
 
 <script>
 import _ from "lodash";
+import io from "socket.io-client";
 import collisionMixin from "@/mixins/collisionMixin";
 
 export default {
   name: "Map",
+  mixins: [collisionMixin],
   data: () => ({
+    socket: {},
     context: null,
     tiles: [],
-    walls: [
-      {
-        x: 200,
-        y: 80,
-        w: 40,
-        h: 40,
-        id: 0
-      },
-      {
-        x: 200,
-        y: 120,
-        w: 40,
-        h: 40,
-        id: 1
-      },
-      {
-        x: 200,
-        y: 160,
-        w: 40,
-        h: 40,
-        id: 2
-      }
-    ],
-    units: [
-      {
-        x: 40,
-        y: 80,
-        w: 40,
-        h: 40,
-        id: 0,
-        selected: false,
-        hovered: false,
-        movement: 130
-      },
-      {
-        x: 80,
-        y: 320,
-        w: 40,
-        h: 40,
-        id: 1,
-        selected: false,
-        hovered: false,
-        movement: 160
-      },
-      {
-        x: 160,
-        y: 480,
-        w: 40,
-        h: 40,
-        id: 2,
-        selected: false,
-        hovered: false,
-        movement: 100
-      }
-    ],
+    walls: [],
+    units: [],
     tileRowCount: 20,
     tileColumnCount: 30,
     selectedUnit: null
   }),
-  mounted() {
-    this.context = this.$refs.map.getContext("2d");
-    this.drawMap();
-    this.redraw();
-  },
   computed: {
     possibleTiles() {
       return this.tiles.filter(tile => tile.movementPossible);
     }
+  },
+  created() {
+    this.socket = io("http://localhost:3000");
+  },
+  mounted() {
+    this.socket.on("getWalls", data => {
+      this.walls = data;
+    });
+
+    this.socket.on("getPlayers", data => {
+      this.units = data[0].units;
+      this.$store.dispatch("setPlayers", data);
+      console.log(data);
+    });
+
+    this.context = this.$refs.map.getContext("2d");
+    this.drawMap();
+    this.redraw();
   },
   methods: {
     drawMap() {
@@ -144,7 +107,7 @@ export default {
     },
     drawWalls() {
       this.walls.forEach(wall => {
-        this.context.fillStyle = "black";
+        this.context.fillStyle = "#999";
         this.context.fillRect(wall.x, wall.y, wall.w, wall.h);
       });
     },
@@ -170,7 +133,7 @@ export default {
         const collisionY = rect.y - this.selectedUnit.y;
         rect.movementPossible = false;
         if (
-          this.selectedUnit.movement >
+          this.selectedUnit.movement >=
           Math.sqrt(collisionX * collisionX + collisionY * collisionY)
         ) {
           const unitX = this.selectedUnit.x + this.selectedUnit.w / 2;
@@ -250,8 +213,7 @@ export default {
       this.selectedUnit.x = tile.x;
       this.selectedUnit.y = tile.y;
     }
-  },
-  mixins: [collisionMixin]
+  }
 };
 </script>
 

@@ -6,12 +6,29 @@
 </template>
 
 <script>
+import io from "socket.io-client";
+import { mapState } from "vuex";
 import Map from "@/components/Map.vue";
 
 export default {
   name: "BattleRoom",
   components: {
     Map
+  },
+  data: () => ({
+    socket: {}
+  }),
+  computed: {
+    ...mapState(["players"])
+  },
+  created() {
+    this.socket = io("http://localhost:3000");
+  },
+  mounted() {
+    this.socket.on("currentId", data => {
+      this.$store.dispatch("setCurrentId", data);
+      console.log(data);
+    });
   }
 };
 </script>
