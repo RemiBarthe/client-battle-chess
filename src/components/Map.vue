@@ -20,6 +20,7 @@ export default {
   data: () => ({
     socket: {},
     context: null,
+    currentId: "",
     tiles: [],
     walls: [],
     units: [],
@@ -36,14 +37,37 @@ export default {
     this.socket = io("http://localhost:3000");
   },
   mounted() {
-    this.socket.on("getWalls", data => {
+    this.socket.on("walls", data => {
       this.walls = data;
     });
 
-    this.socket.on("getPlayers", data => {
-      this.units = data[0].units;
+    this.socket.on("currentId", data => {
+      this.currentId = data;
+      this.$store.dispatch("setCurrentId", data);
+    });
+
+    this.socket.on("players", data => {
+      data.forEach(player => {
+        if (this.currentId) {
+          if (player.id == this.currentId) {
+            this.myUnits = player.units;
+          } else {
+            this.ennemyUnits = player.units;
+          }
+        }
+      });
+
       this.$store.dispatch("setPlayers", data);
+    });
+
+    this.socket.on("units", data => {
+      this.units = data;
       console.log(data);
+    });
+
+    this.socket.on("selectedUnit", data => {
+      this.selectedUnit = data;
+      this.getPossibleMovements(this.tiles);
     });
 
     this.context = this.$refs.map.getContext("2d");
@@ -93,7 +117,7 @@ export default {
     },
     drawUnits() {
       this.units.forEach(unit => {
-        this.context.fillStyle = "#212F45";
+        this.context.fillStyle = unit.color;
         this.context.lineWidth = 8;
         this.context.strokeStyle = "transparent";
 
@@ -170,6 +194,7 @@ export default {
 
       if (unitSelected) {
         this.selectUnit(unitSelected);
+        this.getPossibleMovements(this.tiles);
       } else {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
@@ -178,9 +203,6 @@ export default {
         }
       }
 
-      if (this.selectedUnit) {
-        this.getPossibleMovements(this.tiles);
-      }
       this.redraw();
     },
     selectUnit(unitSelected) {
@@ -192,6 +214,7 @@ export default {
       this.selectedUnit.selected = true;
     },
     onMouseMove: _.throttle(function(e) {
+      // Reflexion : Enlever le hover sur les units?
       const unit = this.collides(this.units, e.offsetX, e.offsetY);
 
       this.units.forEach(unit => (unit.hovered = false));
@@ -210,8 +233,7 @@ export default {
       this.redraw();
     }, 50),
     moveUnitToTile(tile) {
-      this.selectedUnit.x = tile.x;
-      this.selectedUnit.y = tile.y;
+      this.socket.emit("moveUnit", this.selectedUnit, tile.x, tile.y);
     }
   }
 };
