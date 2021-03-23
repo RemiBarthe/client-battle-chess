@@ -1,5 +1,14 @@
-<template class="test">
+<template>
   <div class="room-container">
+    <div class="players-pseudo">
+      <p
+        v-for="(player, index) in players"
+        :key="index"
+        :style="`color:${player.color}`"
+      >
+        {{ player.pseudo }}
+      </p>
+    </div>
     <Map />
     <div class="action-bar"></div>
   </div>
@@ -34,10 +43,19 @@ export default {
 
   .action-bar {
     width: 800px;
-    height: 70px;
+    height: 60px;
     margin-top: 15px;
     background-color: #223;
     border: solid 2px #112;
+  }
+
+  .players-pseudo {
+    width: 80%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 22px;
+    margin-bottom: 10px;
   }
 }
 </style>

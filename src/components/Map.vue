@@ -26,7 +26,8 @@ export default {
     units: [],
     tileRowCount: 20,
     tileColumnCount: 30,
-    selectedUnit: null
+    selectedUnit: null,
+    myUnits: []
   }),
   computed: {
     possibleTiles() {
@@ -47,22 +48,12 @@ export default {
     });
 
     this.socket.on("players", data => {
-      data.forEach(player => {
-        if (this.currentId) {
-          if (player.id == this.currentId) {
-            this.myUnits = player.units;
-          } else {
-            this.ennemyUnits = player.units;
-          }
-        }
-      });
-
       this.$store.dispatch("setPlayers", data);
     });
 
     this.socket.on("units", data => {
       this.units = data;
-      console.log(data);
+      this.redraw();
     });
 
     this.socket.on("selectedUnit", data => {
@@ -193,8 +184,10 @@ export default {
       const unitSelected = this.collides(this.units, e.offsetX, e.offsetY);
 
       if (unitSelected) {
-        this.selectUnit(unitSelected);
-        this.getPossibleMovements(this.tiles);
+        if (unitSelected.playerId === this.currentId) {
+          this.selectUnit(unitSelected);
+          this.getPossibleMovements(this.tiles);
+        }
       } else {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
@@ -233,7 +226,7 @@ export default {
       this.redraw();
     }, 50),
     moveUnitToTile(tile) {
-      this.socket.emit("moveUnit", this.selectedUnit, tile.x, tile.y);
+      this.socket.emit("moveUnit", this.selectedUnit.id, tile.x, tile.y);
     }
   }
 };
