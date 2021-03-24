@@ -21,17 +21,33 @@ export default {
     socket: {},
     context: null,
     currentId: "",
+    players: [],
     tiles: [],
     walls: [],
     units: [],
     tileRowCount: 20,
     tileColumnCount: 30,
     selectedUnit: null,
-    myUnits: []
+    opponentSelectedUnit: null,
+    colors: {
+      tiles: "#eee",
+      movementPossible: "#ccc",
+      walls: "#666",
+      hoverUnit: "#ccc",
+      selectedUnit: "orange",
+      hoverTile: "orange",
+      lifeBar: "red"
+    }
   }),
   computed: {
     possibleTiles() {
       return this.tiles.filter(tile => tile.movementPossible);
+    },
+    selectedIsMine() {
+      if (this.selectedUnit) {
+        return this.selectedUnit.playerId === this.currentId;
+      }
+      return false;
     }
   },
   created() {
@@ -44,10 +60,11 @@ export default {
 
     this.socket.on("currentId", data => {
       this.currentId = data;
-      this.$store.dispatch("setCurrentId", data);
+      this.$store.dispatch("setCurrentId", this.currentId);
     });
 
     this.socket.on("players", data => {
+      this.players = data;
       this.$store.dispatch("setPlayers", data);
     });
 
@@ -58,6 +75,14 @@ export default {
 
     this.socket.on("selectedUnit", data => {
       this.selectedUnit = data;
+      this.getPossibleMovements(this.tiles);
+    });
+
+    this.socket.on("opponentSelectedUnit", data => {
+      if (this.selectedUnit) {
+        if (this.selectedUnit.id === data.id) this.selectedUnit = data;
+      }
+      this.opponentSelectedUnit = data;
       this.getPossibleMovements(this.tiles);
     });
 
@@ -89,18 +114,15 @@ export default {
     },
     drawTiles() {
       this.tiles.forEach(tile => {
-        this.context.fillStyle = "#eee";
+        this.context.fillStyle = this.colors.tiles;
         this.context.strokeStyle = "rgba(0,0,0,0.1)";
         this.context.lineWidth = 1;
 
         if (tile.movementPossible) {
-          this.context.fillStyle = "#008C8F";
+          this.context.fillStyle = this.colors.movementPossible;
         }
         if (tile.hovered) {
-          this.context.fillStyle = "orange";
-        }
-        if (tile.isWall) {
-          this.context.fillStyle = "black";
+          this.context.fillStyle = this.colors.hoverTile;
         }
         this.context.fillRect(tile.x, tile.y, tile.w, tile.h);
         this.context.strokeRect(tile.x, tile.y, tile.w, tile.h);
@@ -112,17 +134,34 @@ export default {
         this.context.lineWidth = 8;
         this.context.strokeStyle = "transparent";
 
-        if (unit.hovered) this.context.strokeStyle = "#008C8F";
+        if (unit.hovered) this.context.strokeStyle = this.colors.hoverUnit;
 
-        if (unit.selected) this.context.strokeStyle = "orange";
+        if (unit.selected) {
+          this.players.forEach(player => {
+            if (player.id === unit.selected)
+              this.context.strokeStyle = player.secondaryColor;
+          });
+        }
 
         this.context.strokeRect(unit.x, unit.y, unit.w, unit.h);
         this.context.fillRect(unit.x, unit.y, unit.w, unit.h);
       });
     },
+    drawLifeBar() {
+      this.units.forEach(unit => {
+        this.context.fillStyle = this.colors.lifeBar;
+        this.context.lineWidth = 2;
+        this.context.strokeStyle = this.colors.lifeBar;
+
+        const centerBar = unit.x - (unit.maxLife - 40) / 2;
+
+        this.context.strokeRect(centerBar, unit.y - 15, unit.maxLife, 6);
+        this.context.fillRect(centerBar, unit.y - 15, unit.life, 6);
+      });
+    },
     drawWalls() {
       this.walls.forEach(wall => {
-        this.context.fillStyle = "#999";
+        this.context.fillStyle = this.colors.walls;
         this.context.fillRect(wall.x, wall.y, wall.w, wall.h);
       });
     },
@@ -138,8 +177,9 @@ export default {
     redraw() {
       this.context.clearRect(0, 0, this.$refs.map.width, this.$refs.map.height);
       this.drawTiles();
-      this.drawUnits();
       this.drawWalls();
+      this.drawUnits();
+      this.drawLifeBar();
       if (this.selectedUnit) this.drawUnitMovement(this.selectedUnit);
     },
     getPossibleMovements(rects) {
@@ -184,27 +224,16 @@ export default {
       const unitSelected = this.collides(this.units, e.offsetX, e.offsetY);
 
       if (unitSelected) {
-        if (unitSelected.playerId === this.currentId) {
-          this.selectUnit(unitSelected);
-          this.getPossibleMovements(this.tiles);
-        }
+        this.socket.emit("selectUnit", unitSelected.id);
       } else {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
-        if (tile && this.selectedUnit) {
+        if (tile && this.selectedIsMine) {
           this.moveUnitToTile(tile);
         }
       }
 
       this.redraw();
-    },
-    selectUnit(unitSelected) {
-      this.units.forEach(unit => {
-        unit.selected = false;
-        unit.hovered = false;
-      });
-      this.selectedUnit = unitSelected;
-      this.selectedUnit.selected = true;
     },
     onMouseMove: _.throttle(function(e) {
       // Reflexion : Enlever le hover sur les units?
@@ -215,7 +244,7 @@ export default {
         unit.hovered = true;
       }
 
-      if (this.selectedUnit) {
+      if (this.selectedIsMine) {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
         this.possibleTiles.forEach(tile => (tile.hovered = false));
