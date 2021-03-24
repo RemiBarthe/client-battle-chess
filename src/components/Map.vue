@@ -20,8 +20,8 @@ export default {
   data: () => ({
     socket: {},
     context: null,
-    currentId: "",
     players: [],
+    currentPlayer: null,
     tiles: [],
     walls: [],
     units: [],
@@ -34,7 +34,6 @@ export default {
       movementPossible: "#ccc",
       walls: "#666",
       hoverUnit: "#ccc",
-      selectedUnit: "orange",
       hoverTile: "orange",
       lifeBar: "red"
     }
@@ -45,7 +44,7 @@ export default {
     },
     selectedIsMine() {
       if (this.selectedUnit) {
-        return this.selectedUnit.playerId === this.currentId;
+        return this.selectedUnit.playerId === this.currentPlayer.id;
       }
       return false;
     }
@@ -58,9 +57,8 @@ export default {
       this.walls = data;
     });
 
-    this.socket.on("currentId", data => {
-      this.currentId = data;
-      this.$store.dispatch("setCurrentId", this.currentId);
+    this.socket.on("currentPlayer", data => {
+      this.currentPlayer = data;
     });
 
     this.socket.on("players", data => {
@@ -79,11 +77,12 @@ export default {
     });
 
     this.socket.on("opponentSelectedUnit", data => {
+      this.opponentSelectedUnit = data;
+
       if (this.selectedUnit) {
         if (this.selectedUnit.id === data.id) this.selectedUnit = data;
+        this.getPossibleMovements(this.tiles);
       }
-      this.opponentSelectedUnit = data;
-      this.getPossibleMovements(this.tiles);
     });
 
     this.context = this.$refs.map.getContext("2d");
@@ -122,7 +121,7 @@ export default {
           this.context.fillStyle = this.colors.movementPossible;
         }
         if (tile.hovered) {
-          this.context.fillStyle = this.colors.hoverTile;
+          this.context.fillStyle = this.currentPlayer.secondaryColor;
         }
         this.context.fillRect(tile.x, tile.y, tile.w, tile.h);
         this.context.strokeRect(tile.x, tile.y, tile.w, tile.h);
@@ -134,14 +133,14 @@ export default {
         this.context.lineWidth = 8;
         this.context.strokeStyle = "transparent";
 
-        if (unit.hovered) this.context.strokeStyle = this.colors.hoverUnit;
-
         if (unit.selected) {
           this.players.forEach(player => {
             if (player.id === unit.selected)
               this.context.strokeStyle = player.secondaryColor;
           });
         }
+
+        if (unit.hovered) this.context.strokeStyle = this.colors.hoverUnit;
 
         this.context.strokeRect(unit.x, unit.y, unit.w, unit.h);
         this.context.fillRect(unit.x, unit.y, unit.w, unit.h);
@@ -223,7 +222,7 @@ export default {
 
       const unitSelected = this.collides(this.units, e.offsetX, e.offsetY);
 
-      if (unitSelected) {
+      if (unitSelected && this.currentPlayer) {
         this.socket.emit("selectUnit", unitSelected.id);
       } else {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
