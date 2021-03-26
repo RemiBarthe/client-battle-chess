@@ -9,25 +9,42 @@
         {{ player.pseudo }}
       </p>
     </div>
+
+    <p class="player-turn" v-if="playerTurn">
+      C'est au tour de {{ playerTurn.pseudo }}
+    </p>
+
     <Map />
-    <div class="action-bar"></div>
+
+    <ActionBar />
   </div>
 </template>
 
 <script>
 import { mapState } from "vuex";
 import Map from "@/components/Map.vue";
+import { socket } from "@/service/socket";
+import ActionBar from "@/components/ActionBar.vue";
 
 export default {
   name: "BattleRoom",
   components: {
-    Map
+    Map,
+    ActionBar
   },
   data: () => ({
-    socket: {}
+    socket: {},
+    playerTurn: null
   }),
   computed: {
     ...mapState(["players"])
+  },
+  mounted() {
+    socket.on("playerTurn", data => {
+      this.playerTurn = data;
+
+      this.$store.dispatch("setPlayerTurn", this.playerTurn);
+    });
   }
 };
 </script>
@@ -41,14 +58,6 @@ export default {
   justify-content: center;
   background-color: #444;
 
-  .action-bar {
-    width: 800px;
-    height: 60px;
-    margin-top: 15px;
-    background-color: #223;
-    border: solid 2px #112;
-  }
-
   .players-pseudo {
     width: 80%;
     display: flex;
@@ -56,6 +65,13 @@ export default {
     align-items: center;
     font-size: 22px;
     margin-bottom: 10px;
+  }
+
+  .player-turn {
+    color: white;
+    font-size: 22px;
+    position: absolute;
+    top: 15px;
   }
 }
 </style>

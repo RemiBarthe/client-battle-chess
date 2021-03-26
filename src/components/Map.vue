@@ -11,14 +11,13 @@
 
 <script>
 import _ from "lodash";
-import io from "socket.io-client";
 import collisionMixin from "@/mixins/collisionMixin";
+import { socket } from "@/service/socket";
 
 export default {
   name: "Map",
   mixins: [collisionMixin],
   data: () => ({
-    socket: {},
     context: null,
     players: [],
     currentPlayer: null,
@@ -49,42 +48,33 @@ export default {
       return false;
     }
   },
-  created() {
-    let uri = window.location.search.substring(1);
-    let params = new URLSearchParams(uri);
-    let query = "secondPlayer=false";
-
-    if (params.get("idroom")) {
-      query = "secondPlayer=true";
-    }
-
-    this.socket = io("http://localhost:3000", { query: query });
-  },
   mounted() {
-    this.socket.on("walls", data => {
+    socket.on("walls", data => {
       this.walls = data;
     });
 
-    this.socket.on("currentPlayer", data => {
+    socket.on("currentPlayer", data => {
       this.currentPlayer = data;
+      this.$store.dispatch("setCurrentPlayer", this.currentPlayer);
     });
 
-    this.socket.on("players", data => {
+    socket.on("players", data => {
       this.players = data;
-      this.$store.dispatch("setPlayers", data);
+      this.$store.dispatch("setPlayers", this.players);
     });
 
-    this.socket.on("units", data => {
+    socket.on("units", data => {
       this.units = data;
       this.redraw();
     });
 
-    this.socket.on("selectedUnit", data => {
+    socket.on("selectedUnit", data => {
       this.selectedUnit = data;
+      this.$store.dispatch("setSelectedUnit", this.selectedUnit);
       this.getPossibleMovements(this.tiles);
     });
 
-    this.socket.on("opponentSelectedUnit", data => {
+    socket.on("opponentSelectedUnit", data => {
       this.opponentSelectedUnit = data;
 
       if (this.selectedUnit) {
@@ -231,7 +221,7 @@ export default {
       const unitSelected = this.collides(this.units, e.offsetX, e.offsetY);
 
       if (unitSelected && this.currentPlayer) {
-        this.socket.emit("selectUnit", unitSelected.id);
+        socket.emit("selectUnit", unitSelected.id);
       } else {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
@@ -262,7 +252,7 @@ export default {
       this.redraw();
     }, 50),
     moveUnitToTile(tile) {
-      this.socket.emit("moveUnit", this.selectedUnit.id, tile.x, tile.y);
+      socket.emit("moveUnit", this.selectedUnit.id, tile.x, tile.y);
     }
   }
 };
