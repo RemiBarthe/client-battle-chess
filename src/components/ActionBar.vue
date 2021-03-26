@@ -3,7 +3,7 @@
     <div class="infos">{{ selectedUnit }}</div>
 
     <!-- mettre des icons pour les actions -->
-    <div class="actions" v-if="playerTurn.id === currentPlayer.id">
+    <div class="actions" v-if="isMyTurn">
       <div class="action">Se déplacer</div>
       <div class="action">Attaquer</div>
       <div class="action" @click="skipTurn()">Passer son tour</div>
@@ -22,7 +22,7 @@ export default {
     turn: ""
   }),
   computed: {
-    ...mapState(["selectedUnit", "players", "currentPlayer", "playerTurn"])
+    ...mapState(["selectedUnit", "players", "currentPlayer", "isMyTurn"])
   },
   methods: {
     skipTurn() {

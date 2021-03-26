@@ -37,13 +37,14 @@ export default {
     playerTurn: null
   }),
   computed: {
-    ...mapState(["players"])
+    ...mapState(["players", "currentPlayer"])
   },
   mounted() {
     socket.on("playerTurn", data => {
       this.playerTurn = data;
+      let isMyTurn = this.playerTurn.id === this.currentPlayer.id;
 
-      this.$store.dispatch("setPlayerTurn", this.playerTurn);
+      this.$store.dispatch("setIsMyTurn", isMyTurn);
     });
   }
 };

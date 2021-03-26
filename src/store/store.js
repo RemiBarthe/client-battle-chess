@@ -3,14 +3,14 @@ import { createStore } from 'vuex'
 export const SET_PLAYERS = 'SET_PLAYERS'
 export const SET_CURRENT_PLAYER = 'SET_CURRENT_PLAYER'
 export const SET_SELECTED_UNIT = 'SET_SELECTED_UNIT'
-export const SET_PLAYER_TURN = 'SET_PLAYER_TURN'
+export const SET_IS_MY_TURN = 'SET_IS_MY_TURN'
 
 export const store = createStore({
     state: {
         players: [],
         selectedUnit: {},
         currentPlayer: {},
-        playerTurn: null
+        isMyTurn: false
     },
     actions: {
         setPlayers({ commit }, payload) {
@@ -22,8 +22,8 @@ export const store = createStore({
         setSelectedUnit({ commit }, payload) {
             commit(SET_SELECTED_UNIT, payload)
         },
-        setPlayerTurn({ commit }, payload) {
-            commit(SET_PLAYER_TURN, payload)
+        setIsMyTurn({ commit }, payload) {
+            commit(SET_IS_MY_TURN, payload)
         },
     },
     mutations: {
@@ -36,8 +36,8 @@ export const store = createStore({
         [SET_SELECTED_UNIT](state, payload) {
             state.selectedUnit = payload
         },
-        [SET_PLAYER_TURN](state, payload) {
-            state.playerTurn = payload
+        [SET_IS_MY_TURN](state, payload) {
+            state.isMyTurn = payload
         },
     }
 })

@@ -11,6 +11,7 @@
 
 <script>
 import _ from "lodash";
+import { mapState } from "vuex";
 import collisionMixin from "@/mixins/collisionMixin";
 import { socket } from "@/service/socket";
 
@@ -38,6 +39,7 @@ export default {
     }
   }),
   computed: {
+    ...mapState(["isMyTurn"]),
     possibleTiles() {
       return this.tiles.filter(tile => tile.movementPossible);
     },
@@ -225,7 +227,7 @@ export default {
       } else {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
-        if (tile && this.selectedIsMine) {
+        if (tile && this.selectedIsMine && this.isMyTurn) {
           this.moveUnitToTile(tile);
         }
       }
@@ -241,7 +243,7 @@ export default {
         unit.hovered = true;
       }
 
-      if (this.selectedIsMine) {
+      if (this.selectedIsMine && this.isMyTurn) {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
         this.possibleTiles.forEach(tile => (tile.hovered = false));
