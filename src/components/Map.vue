@@ -50,7 +50,15 @@ export default {
     }
   },
   created() {
-    this.socket = io("http://localhost:3000");
+    let uri = window.location.search.substring(1);
+    let params = new URLSearchParams(uri);
+    let query = "secondPlayer=false";
+
+    if (params.get("idroom")) {
+      query = "secondPlayer=true";
+    }
+
+    this.socket = io("http://localhost:3000", { query: query });
   },
   mounted() {
     this.socket.on("walls", data => {
