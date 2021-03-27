@@ -34,8 +34,9 @@ export default {
       movementPossible: "#ccc",
       walls: "#666",
       hoverUnit: "#ccc",
-      hoverTile: "orange",
-      lifeBar: "red"
+      lifeBar: "red",
+      actionPoint: "#39E11E",
+      actionPointBorder: "#49b822"
     }
   }),
   computed: {
@@ -46,6 +47,16 @@ export default {
     selectedIsMine() {
       if (this.selectedUnit) {
         return this.selectedUnit.playerId === this.currentPlayer.id;
+      }
+      return false;
+    },
+    canDoAnAction() {
+      if (this.selectedUnit) {
+        return (
+          this.selectedUnit.actionPoint > 0 &&
+          this.selectedIsMine &&
+          this.isMyTurn
+        );
       }
       return false;
     }
@@ -154,8 +165,23 @@ export default {
 
         const centerBar = unit.x - (unit.maxLife - 40) / 2;
 
-        this.context.strokeRect(centerBar, unit.y - 15, unit.maxLife, 6);
-        this.context.fillRect(centerBar, unit.y - 15, unit.life, 6);
+        this.context.strokeRect(centerBar, unit.y - 26, unit.maxLife, 6);
+        this.context.fillRect(centerBar, unit.y - 26, unit.life, 6);
+      });
+    },
+    drawActionPoint() {
+      this.units.forEach(unit => {
+        let actionPointX = unit.x;
+        for (let i = 0; i < unit.actionPoint; i++) {
+          this.context.fillStyle = this.colors.actionPoint;
+          this.context.lineWidth = 4;
+          this.context.strokeStyle = this.colors.actionPointBorder;
+
+          this.context.strokeRect(actionPointX, unit.y - 14, 6, 6);
+          this.context.fillRect(actionPointX, unit.y - 14, 6, 6);
+
+          actionPointX += 12;
+        }
       });
     },
     drawWalls() {
@@ -179,6 +205,7 @@ export default {
       this.drawWalls();
       this.drawUnits();
       this.drawLifeBar();
+      this.drawActionPoint();
       if (this.selectedUnit) this.drawUnitMovement(this.selectedUnit);
     },
     getPossibleMovements(rects) {
@@ -227,7 +254,7 @@ export default {
       } else {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
-        if (tile && this.selectedIsMine && this.isMyTurn) {
+        if (tile && this.canDoAnAction) {
           this.moveUnitToTile(tile);
         }
       }
@@ -243,7 +270,7 @@ export default {
         unit.hovered = true;
       }
 
-      if (this.selectedIsMine && this.isMyTurn) {
+      if (this.canDoAnAction) {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
         this.possibleTiles.forEach(tile => (tile.hovered = false));
