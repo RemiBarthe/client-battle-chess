@@ -33,6 +33,22 @@ export default {
                     if (!collisionWall) rect.attackPossible = true
                 }
             })
+        },
+        getPossibleAttackWalls(rects) {
+            let possibleAttackWalls = []
+            rects.forEach(rect => {
+                const collisionX = rect.x - this.selectedUnit.x
+                const collisionY = rect.y - this.selectedUnit.y
+                if (
+                    this.selectedUnit.attackDistance >=
+                    Math.sqrt(collisionX * collisionX + collisionY * collisionY)
+                ) {
+                    console.log(rect)
+                    possibleAttackWalls.push(rect)
+                }
+            })
+
+            return possibleAttackWalls
         }
     }
 }

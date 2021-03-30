@@ -17,6 +17,9 @@ import actionMixin from "@/mixins/actionMixin";
 import drawMixin from "@/mixins/drawMixin";
 import { socket } from "@/service/socket";
 
+const MOVE_MODE = "move";
+const ATTACK_MODE = "attack";
+
 export default {
   name: "Map",
   mixins: [collisionMixin, actionMixin, drawMixin],
@@ -26,6 +29,7 @@ export default {
     currentPlayer: null,
     tiles: [],
     walls: [],
+    possibleAttackWalls: [],
     units: [],
     tileRowCount: 20,
     tileColumnCount: 30,
@@ -44,8 +48,21 @@ export default {
   }),
   computed: {
     ...mapState(["isMyTurn", "unitsMode"]),
-    possibleTiles() {
+    possibleMovementTiles() {
       return this.tiles.filter(tile => tile.movementPossible);
+    },
+    possibleAttackTiles() {
+      return this.tiles.filter(tile => tile.attackPossible);
+    },
+    possibleTiles() {
+      if (this.unitsMode === MOVE_MODE) {
+        return this.possibleMovementTiles;
+      }
+      if (this.unitsMode === ATTACK_MODE) {
+        return this.possibleAttackTiles;
+      }
+
+      return false;
     },
     selectedIsMine() {
       if (this.selectedUnit) {
@@ -66,8 +83,12 @@ export default {
   },
   watch: {
     unitsMode() {
-      if (this.unitsMode === "move") this.getPossibleMovements(this.tiles);
-      if (this.unitsMode === "attack") this.getPossibleAttacks(this.tiles);
+      if (this.unitsMode === MOVE_MODE && this.selectedUnit)
+        this.getPossibleMovements(this.tiles);
+      if (this.unitsMode === ATTACK_MODE && this.selectedUnit) {
+        this.getPossibleAttacks(this.tiles);
+        this.possibleAttackWalls = this.getPossibleAttackWalls(this.walls);
+      }
 
       this.redraw();
     }
@@ -95,8 +116,8 @@ export default {
     socket.on("selectedUnit", data => {
       this.selectedUnit = data;
       this.$store.dispatch("setSelectedUnit", this.selectedUnit);
-      if (this.unitsMode === "move") this.getPossibleMovements(this.tiles);
-      if (this.unitsMode === "attack") this.getPossibleAttacks(this.tiles);
+      if (this.unitsMode === MOVE_MODE) this.getPossibleMovements(this.tiles);
+      if (this.unitsMode === ATTACK_MODE) this.getPossibleAttacks(this.tiles);
     });
 
     socket.on("opponentSelectedUnit", data => {
@@ -129,7 +150,11 @@ export default {
       });
     },
     onClick(e) {
-      const wallSelected = this.collides(this.walls, e.offsetX, e.offsetY);
+      if (this.unitsMode === MOVE_MODE) this.onClickMoveMode(e);
+      if (this.unitsMode === ATTACK_MODE) this.onClickAttackMode(e);
+    },
+    onClickMoveMode(e) {
+      let wallSelected = this.collides(this.walls, e.offsetX, e.offsetY);
       if (wallSelected) return true;
 
       const unitSelected = this.collides(this.units, e.offsetX, e.offsetY);
@@ -146,8 +171,23 @@ export default {
 
       this.redraw();
     },
+    onClickAttackMode(e) {
+      const attackWall = this.collides(
+        this.possibleAttackWalls,
+        e.offsetX,
+        e.offsetY
+      );
+
+      if (attackWall && this.canDoAnAction) {
+        attackWall.x = -40;
+      }
+
+      this.redraw();
+    },
+    moveUnitToTile(tile) {
+      socket.emit("moveUnit", this.selectedUnit.id, tile.x, tile.y);
+    },
     onMouseMove: _.throttle(function(e) {
-      // Reflexion : Enlever le hover sur les units?
       const unit = this.collides(this.units, e.offsetX, e.offsetY);
 
       this.units.forEach(unit => (unit.hovered = false));
@@ -164,10 +204,7 @@ export default {
         }
       }
       this.redraw();
-    }, 50),
-    moveUnitToTile(tile) {
-      socket.emit("moveUnit", this.selectedUnit.id, tile.x, tile.y);
-    }
+    }, 50)
   }
 };
 </script>
