@@ -55,6 +55,30 @@ export default {
                 return true
             }
             return false
+        },
+        getWallCollision(selectedUnitX, selectedUnitY, selectedUnitW, selectedUnitH, rectX, rectY, rectW, rectH) {
+            const unitX = selectedUnitX + selectedUnitW / 2
+            const unitY = selectedUnitY + selectedUnitH / 2
+
+            const tileX = rectX + rectW / 2
+            const tileY = rectY + rectH / 2
+            let collisionWall = false
+
+            this.walls.every(wall => {
+                collisionWall = this.lineRect(
+                    unitX,
+                    unitY,
+                    tileX,
+                    tileY,
+                    wall.x + 0.5,
+                    wall.y + 0.5,
+                    wall.w - 1,
+                    wall.h - 1
+                )
+                if (collisionWall) return false
+                else return true
+            })
+            return collisionWall
         }
     }
 }

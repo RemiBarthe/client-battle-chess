@@ -4,13 +4,15 @@ export const SET_PLAYERS = 'SET_PLAYERS'
 export const SET_CURRENT_PLAYER = 'SET_CURRENT_PLAYER'
 export const SET_SELECTED_UNIT = 'SET_SELECTED_UNIT'
 export const SET_IS_MY_TURN = 'SET_IS_MY_TURN'
+export const SET_UNITS_MODE = 'SET_UNITS_MODE'
 
 export const store = createStore({
     state: {
         players: [],
         selectedUnit: {},
         currentPlayer: {},
-        isMyTurn: false
+        isMyTurn: false,
+        unitsMode: "move"
     },
     actions: {
         setPlayers({ commit }, payload) {
@@ -25,6 +27,9 @@ export const store = createStore({
         setIsMyTurn({ commit }, payload) {
             commit(SET_IS_MY_TURN, payload)
         },
+        setUnitsMode({ commit }, payload) {
+            commit(SET_UNITS_MODE, payload)
+        }
     },
     mutations: {
         [SET_PLAYERS](state, payload) {
@@ -39,5 +44,8 @@ export const store = createStore({
         [SET_IS_MY_TURN](state, payload) {
             state.isMyTurn = payload
         },
+        [SET_UNITS_MODE](state, payload) {
+            state.unitsMode = payload
+        }
     }
 })

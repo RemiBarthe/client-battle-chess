@@ -4,8 +4,20 @@
 
     <!-- mettre des icons pour les actions -->
     <div class="actions" v-if="isMyTurn">
-      <div class="action">Se déplacer</div>
-      <div class="action">Attaquer</div>
+      <div
+        class="action"
+        @click="setUnitsMode('move')"
+        :class="{ active: unitsMode === 'move' }"
+      >
+        Se déplacer
+      </div>
+      <div
+        class="action"
+        @click="setUnitsMode('attack')"
+        :class="{ active: unitsMode === 'attack' }"
+      >
+        Attaquer
+      </div>
       <div class="action" @click="skipTurn()">Passer son tour</div>
     </div>
   </div>
@@ -22,7 +34,13 @@ export default {
     turn: ""
   }),
   computed: {
-    ...mapState(["selectedUnit", "players", "currentPlayer", "isMyTurn"])
+    ...mapState([
+      "selectedUnit",
+      "players",
+      "currentPlayer",
+      "isMyTurn",
+      "unitsMode"
+    ])
   },
   methods: {
     skipTurn() {
@@ -35,6 +53,9 @@ export default {
       });
 
       socket.emit("playerTurn", opponent);
+    },
+    setUnitsMode(UnitsMode) {
+      this.$store.dispatch("setUnitsMode", UnitsMode);
     }
   }
 };
@@ -74,7 +95,11 @@ export default {
       }
 
       &:active {
-        background: rgba(0, 0, 0, 0.1);
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      &.active {
+        background: rgba(0, 120, 120, 0.3);
       }
     }
   }
