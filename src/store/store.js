@@ -12,7 +12,7 @@ export const store = createStore({
         selectedUnit: {},
         currentPlayer: {},
         isMyTurn: false,
-        unitsMode: "move"
+        actionMode: "move"
     },
     actions: {
         setPlayers({ commit }, payload) {
@@ -27,7 +27,7 @@ export const store = createStore({
         setIsMyTurn({ commit }, payload) {
             commit(SET_IS_MY_TURN, payload)
         },
-        setUnitsMode({ commit }, payload) {
+        setactionMode({ commit }, payload) {
             commit(SET_UNITS_MODE, payload)
         }
     },
@@ -45,7 +45,7 @@ export const store = createStore({
             state.isMyTurn = payload
         },
         [SET_UNITS_MODE](state, payload) {
-            state.unitsMode = payload
+            state.actionMode = payload
         }
     }
 })

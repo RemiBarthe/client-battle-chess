@@ -92,15 +92,6 @@ export default {
                 this.context.fillStyle = this.colors.walls
                 this.context.fillRect(wall.x, wall.y, wall.w, wall.h)
             })
-        },
-        drawUnitMovement(unit) {
-            this.context.strokeStyle = "transparent"
-            this.context.lineWidth = 1
-            this.context.beginPath()
-            const circleX = unit.x + unit.w / 2
-            const circleY = unit.y + unit.h / 2
-            this.context.arc(circleX, circleY, unit.movement, 0, 2 * Math.PI, false)
-            this.context.stroke()
         }
     }
 }

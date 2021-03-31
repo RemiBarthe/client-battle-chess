@@ -6,15 +6,15 @@
     <div class="actions" v-if="isMyTurn">
       <div
         class="action"
-        @click="setUnitsMode('move')"
-        :class="{ active: unitsMode === 'move' }"
+        @click="setactionMode('move')"
+        :class="{ active: actionMode === 'move' }"
       >
         Se déplacer
       </div>
       <div
         class="action"
-        @click="setUnitsMode('attack')"
-        :class="{ active: unitsMode === 'attack' }"
+        @click="setactionMode('attack')"
+        :class="{ active: actionMode === 'attack' }"
       >
         Attaquer
       </div>
@@ -39,7 +39,7 @@ export default {
       "players",
       "currentPlayer",
       "isMyTurn",
-      "unitsMode"
+      "actionMode"
     ])
   },
   methods: {
@@ -54,8 +54,8 @@ export default {
 
       socket.emit("playerTurn", opponent);
     },
-    setUnitsMode(UnitsMode) {
-      this.$store.dispatch("setUnitsMode", UnitsMode);
+    setactionMode(actionMode) {
+      this.$store.dispatch("setactionMode", actionMode);
     }
   }
 };

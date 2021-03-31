@@ -43,7 +43,6 @@ export default {
                     this.selectedUnit.attackDistance >=
                     Math.sqrt(collisionX * collisionX + collisionY * collisionY)
                 ) {
-                    console.log(rect)
                     possibleAttackWalls.push(rect)
                 }
             })
