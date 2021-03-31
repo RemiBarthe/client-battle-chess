@@ -6,6 +6,7 @@
     ref="map"
     @click="onClick"
     @mousemove="onMouseMove"
+    :class="{ 'hover-movement': hoverMovement, 'hover-attack': hoverAttack }"
   ></canvas>
 </template>
 
@@ -44,10 +45,13 @@ export default {
       lifeBar: "red",
       actionPoint: "#39E11E",
       actionPointBorder: "#49b822"
-    }
+    },
+    hoverMovement: false,
+    hoverAttack: false,
+    animationCoord: {}
   }),
   computed: {
-    ...mapState(["isMyTurn", "unitsMode"]),
+    ...mapState(["isMyTurn", "actionMode"]),
     possibleMovementTiles() {
       return this.tiles.filter(tile => tile.movementPossible);
     },
@@ -55,10 +59,10 @@ export default {
       return this.tiles.filter(tile => tile.attackPossible);
     },
     possibleTiles() {
-      if (this.unitsMode === MOVE_MODE) {
+      if (this.actionMode === MOVE_MODE) {
         return this.possibleMovementTiles;
       }
-      if (this.unitsMode === ATTACK_MODE) {
+      if (this.actionMode === ATTACK_MODE) {
         return this.possibleAttackTiles;
       }
 
@@ -82,10 +86,10 @@ export default {
     }
   },
   watch: {
-    unitsMode() {
-      if (this.unitsMode === MOVE_MODE && this.selectedUnit)
+    actionMode() {
+      if (this.actionMode === MOVE_MODE && this.selectedUnit)
         this.getPossibleMovements(this.tiles);
-      if (this.unitsMode === ATTACK_MODE && this.selectedUnit) {
+      if (this.actionMode === ATTACK_MODE && this.selectedUnit) {
         this.getPossibleAttacks(this.tiles);
         this.possibleAttackWalls = this.getPossibleAttackWalls(this.walls);
       }
@@ -116,8 +120,8 @@ export default {
     socket.on("selectedUnit", data => {
       this.selectedUnit = data;
       this.$store.dispatch("setSelectedUnit", this.selectedUnit);
-      if (this.unitsMode === MOVE_MODE) this.getPossibleMovements(this.tiles);
-      if (this.unitsMode === ATTACK_MODE) this.getPossibleAttacks(this.tiles);
+      if (this.actionMode === MOVE_MODE) this.getPossibleMovements(this.tiles);
+      if (this.actionMode === ATTACK_MODE) this.getPossibleAttacks(this.tiles);
     });
 
     socket.on("opponentSelectedUnit", data => {
@@ -141,7 +145,6 @@ export default {
       this.drawUnits();
       this.drawLifeBar();
       this.drawActionPoint();
-      if (this.selectedUnit) this.drawUnitMovement(this.selectedUnit);
     },
     setTilesToDefault() {
       this.tiles.forEach(tile => {
@@ -150,8 +153,8 @@ export default {
       });
     },
     onClick(e) {
-      if (this.unitsMode === MOVE_MODE) this.onClickMoveMode(e);
-      if (this.unitsMode === ATTACK_MODE) this.onClickAttackMode(e);
+      if (this.actionMode === MOVE_MODE) this.onClickMoveMode(e);
+      if (this.actionMode === ATTACK_MODE) this.onClickAttackMode(e);
     },
     onClickMoveMode(e) {
       let wallSelected = this.collides(this.walls, e.offsetX, e.offsetY);
@@ -179,8 +182,17 @@ export default {
       );
 
       if (attackWall && this.canDoAnAction) {
+        this.animationCoord = {
+          startX: attackWall.x,
+          startY: attackWall.y,
+          endX: attackWall.x - 20,
+          endY: attackWall.y - 20,
+          frame: 0
+        };
+        requestAnimationFrame(this.attackAnimation);
         attackWall.x = -40;
       }
+      this.getPossibleAttacks(this.tiles);
 
       this.redraw();
     },
@@ -195,16 +207,67 @@ export default {
         unit.hovered = true;
       }
 
+      if (this.actionMode === MOVE_MODE) this.mouseHoverMoveMode(e);
+      if (this.actionMode === ATTACK_MODE) this.mouseHoverAttackMode(e);
+
+      this.redraw();
+    }, 50),
+    mouseHoverMoveMode(e) {
+      this.hoverMovement = false;
       if (this.canDoAnAction) {
         const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
         this.possibleTiles.forEach(tile => (tile.hovered = false));
         if (tile) {
+          this.hoverMovement = true;
           tile.hovered = true;
         }
       }
+    },
+    mouseHoverAttackMode(e) {
+      this.hoverAttack = false;
+
+      if (this.canDoAnAction) {
+        const attackWall = this.collides(
+          this.possibleAttackWalls,
+          e.offsetX,
+          e.offsetY
+        );
+
+        if (attackWall) {
+          this.hoverAttack = true;
+        }
+      }
+    },
+    attackAnimation() {
       this.redraw();
-    }, 50)
+      this.context.strokeStyle = "#fff";
+      this.context.lineWidth = 5;
+      this.context.beginPath();
+      this.context.moveTo(this.animationCoord.endX, this.animationCoord.endY);
+      this.context.lineTo(
+        this.animationCoord.startX,
+        this.animationCoord.startY
+      );
+      this.context.stroke();
+
+      this.animationCoord.frame++;
+
+      if (this.animationCoord.frame > 5) {
+        this.animationCoord.startX += 3;
+        this.animationCoord.startY += 3;
+        this.animationCoord.endX += 4;
+        this.animationCoord.endY += 4;
+      }
+
+      if (this.animationCoord.endX >= this.animationCoord.startX) {
+        cancelAnimationFrame(this.attackAnimation);
+        this.redraw();
+        return;
+      }
+
+      requestAnimationFrame(this.attackAnimation);
+    }
   }
 };
 </script>
@@ -212,5 +275,13 @@ export default {
 <style lang="scss" scoped>
 .canvas-map {
   background-color: grey;
+
+  &.hover-movement {
+    cursor: pointer;
+  }
+
+  &.hover-attack {
+    cursor: crosshair;
+  }
 }
 </style>
