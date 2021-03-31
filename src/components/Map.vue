@@ -31,6 +31,7 @@ export default {
     tiles: [],
     walls: [],
     possibleAttackWalls: [],
+    possibleAttackUnits: [],
     units: [],
     tileRowCount: 20,
     tileColumnCount: 30,
@@ -52,6 +53,12 @@ export default {
   }),
   computed: {
     ...mapState(["isMyTurn", "actionMode"]),
+    myUnits() {
+      return this.units.filter(unit => unit.playerId === this.currentPlayer.id);
+    },
+    opponentUnits() {
+      return this.units.filter(unit => unit.playerId !== this.currentPlayer.id);
+    },
     possibleMovementTiles() {
       return this.tiles.filter(tile => tile.movementPossible);
     },
@@ -92,6 +99,9 @@ export default {
       if (this.actionMode === ATTACK_MODE && this.selectedUnit) {
         this.getPossibleAttacks(this.tiles);
         this.possibleAttackWalls = this.getPossibleAttackWalls(this.walls);
+        this.possibleAttackUnits = this.getPossibleAttackUnits(
+          this.opponentUnits
+        );
       }
 
       this.redraw();
@@ -153,23 +163,23 @@ export default {
       });
     },
     onClick(e) {
-      if (this.actionMode === MOVE_MODE) this.onClickMoveMode(e);
-      if (this.actionMode === ATTACK_MODE) this.onClickAttackMode(e);
+      const unitSelected = this.collides(this.myUnits, e.offsetX, e.offsetY);
+
+      if (unitSelected) {
+        socket.emit("selectUnit", unitSelected.id);
+      } else {
+        if (this.actionMode === MOVE_MODE) this.onClickMoveMode(e);
+        if (this.actionMode === ATTACK_MODE) this.onClickAttackMode(e);
+      }
     },
     onClickMoveMode(e) {
       let wallSelected = this.collides(this.walls, e.offsetX, e.offsetY);
       if (wallSelected) return true;
 
-      const unitSelected = this.collides(this.units, e.offsetX, e.offsetY);
+      const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
 
-      if (unitSelected && this.currentPlayer) {
-        socket.emit("selectUnit", unitSelected.id);
-      } else {
-        const tile = this.collides(this.possibleTiles, e.offsetX, e.offsetY);
-
-        if (tile && this.canDoAnAction) {
-          this.moveUnitToTile(tile);
-        }
+      if (tile && this.canDoAnAction) {
+        this.moveUnitToTile(tile);
       }
 
       this.redraw();
@@ -191,6 +201,23 @@ export default {
         };
         requestAnimationFrame(this.attackAnimation);
         attackWall.x = -40;
+      }
+
+      const attackOpponent = this.collides(
+        this.possibleAttackUnits,
+        e.offsetX,
+        e.offsetY
+      );
+
+      if (attackOpponent && this.canDoAnAction) {
+        this.animationCoord = {
+          startX: attackOpponent.x,
+          startY: attackOpponent.y,
+          endX: attackOpponent.x - 20,
+          endY: attackOpponent.y - 20,
+          frame: 0
+        };
+        requestAnimationFrame(this.attackAnimation);
       }
       this.getPossibleAttacks(this.tiles);
 
@@ -234,7 +261,13 @@ export default {
           e.offsetY
         );
 
-        if (attackWall) {
+        const attackUnits = this.collides(
+          this.possibleAttackUnits,
+          e.offsetX,
+          e.offsetY
+        );
+
+        if (attackWall || attackUnits) {
           this.hoverAttack = true;
         }
       }

@@ -48,6 +48,23 @@ export default {
             })
 
             return possibleAttackWalls
+        },
+        getPossibleAttackUnits(rects) {
+            let possibleAttackUnits = []
+            rects.forEach(rect => {
+                const collisionX = rect.x - this.selectedUnit.x
+                const collisionY = rect.y - this.selectedUnit.y
+                if (
+                    this.selectedUnit.attackDistance >=
+                    Math.sqrt(collisionX * collisionX + collisionY * collisionY)
+                ) {
+                    const collisionWall = this.getWallCollision(this.selectedUnit.x, this.selectedUnit.y, this.selectedUnit.w, this.selectedUnit.h, rect.x, rect.y, rect.w, rect.h)
+
+                    if (!collisionWall) possibleAttackUnits.push(rect)
+                }
+            })
+
+            return possibleAttackUnits
         }
     }
 }
